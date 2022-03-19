@@ -33,11 +33,13 @@ public class ImageHandler {
                         int maxImagePartHeight, String imageExtension) throws IOException {
         File directory = new File(workingDirectory);
 
-        if (!directory.isDirectory())
+        if (!directory.isDirectory()) {
             throw new IllegalArgumentException("The passed path is not a directory.");
+        }
 
-        if (maxImagePartWidth <= 0 || maxImagePartHeight <= 0)
+        if (maxImagePartWidth <= 0 || maxImagePartHeight <= 0) {
             throw new IllegalArgumentException("Invalid image part size.");
+        }
 
         this.workingDirectory = directory.getPath();
         this.maxImagePartWidth = maxImagePartWidth;
@@ -46,8 +48,9 @@ public class ImageHandler {
     }
 
     public byte[] getSubImage(int imageId, int x, int y, int width, int height) throws IOException {
-        if (imageId >= imageList.size() || imageList.get(imageId) == null)
+        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
+        }
 
         int regionX = max(x, 0);
         int regionY = max(y, 0);
@@ -60,8 +63,9 @@ public class ImageHandler {
         int subImageX = 0;
         int subImageY = 0;
 
-        if (subImageWidth <= 0 || subImageHeight <= 0)
+        if (subImageWidth <= 0 || subImageHeight <= 0) {
             throw new IncorrectImageRegionException();
+        }
 
         BufferedImage subImage = new BufferedImage(subImageWidth,
                 subImageHeight, BufferedImage.TYPE_INT_RGB);
@@ -126,8 +130,13 @@ public class ImageHandler {
     }
 
     public int createImage(int width, int height) throws IOException {
+        if (width <= 0 || height <= 0) {
+            throw new IncorrectImageRegionException();
+        }
+
         int imageId = imageList.size();
         int numberOfParts = (height + maxImagePartHeight - 1) / maxImagePartHeight;
+        new File(getImageDirectoryPath(imageId)).mkdirs();
 
         for (int i = 0; i < numberOfParts; i++) {
             int imagePartHeight = min(height - i * maxImagePartHeight, maxImagePartHeight);
@@ -137,13 +146,14 @@ public class ImageHandler {
             ImageIO.write(imagePart, imageExtension, imagePartFile);
         }
 
-        imageList.set(imageId, new LargeImage(width, height, numberOfParts));
+        imageList.add(imageId, new LargeImage(width, height, numberOfParts));
         return imageId;
     }
 
     public void deleteImage(int imageId) throws IOException {
-        if (imageId >= imageList.size() || imageList.get(imageId) == null)
+        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
+        }
 
         FileUtils.deleteDirectory(new File(getImageDirectoryPath(imageId)));
         imageList.set(imageId, null);
