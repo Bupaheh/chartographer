@@ -1,4 +1,5 @@
 import ImageHandler.Exceptions.IncorrectImageIdException;
+import ImageHandler.Exceptions.IncorrectImageRegionException;
 import ImageHandler.ImageHandler;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -186,6 +187,28 @@ public class TestImageHandler {
     }
 
     @Test
+    public void incorrectIdDrawImageTest() throws IOException {
+        ImageHandler imageHandler = new ImageHandler(workingDir, 10, 10, imageExtension);
+        int imageId = imageHandler.createImage(7, 20);
+        File imageFile = new File(smallImagePath);
+        InputStream inputStream = new FileInputStream(imageFile);
+
+        assertThrowsExactly(IncorrectImageIdException.class, () ->
+                imageHandler.drawImage(imageId + 1, 5, 19, 3, 2, inputStream));
+    }
+
+    @Test
+    public void incorrectRegionDrawImageTest() throws IOException {
+        ImageHandler imageHandler = new ImageHandler(workingDir, 10, 10, imageExtension);
+        int imageId = imageHandler.createImage(7, 20);
+        File imageFile = new File(smallImagePath);
+        InputStream inputStream = new FileInputStream(imageFile);
+
+        assertThrowsExactly(IncorrectImageRegionException.class, () ->
+                imageHandler.drawImage(imageId, 100, 100, 3, 2, inputStream));
+    }
+
+    @Test
     public void inSinglePartGetSubImageTest() throws IOException {
         ImageHandler imageHandler = new ImageHandler(workingDir, 100, 100, imageExtension);
         int imageId = imageHandler.createImage(7, 7);
@@ -288,6 +311,24 @@ public class TestImageHandler {
         File ansFile = new File(largeImagePath);
 
         assertArrayEquals(FileUtils.readFileToByteArray(ansFile), res);
+    }
+
+    @Test
+    public void incorrectIdSubImageTest() throws IOException {
+        ImageHandler imageHandler = new ImageHandler(workingDir, 10, 10, imageExtension);
+        int imageId = imageHandler.createImage(7, 20);
+
+        assertThrowsExactly(IncorrectImageIdException.class, () ->
+                imageHandler.getSubImage(imageId + 1, 5, 19, 3, 2));
+    }
+
+    @Test
+    public void incorrectRegionSubImageTest() throws IOException {
+        ImageHandler imageHandler = new ImageHandler(workingDir, 10, 10, imageExtension);
+        int imageId = imageHandler.createImage(7, 20);
+
+        assertThrowsExactly(IncorrectImageRegionException.class, () ->
+                imageHandler.getSubImage(imageId, -100, 19, 3, 2));
     }
 
 }
