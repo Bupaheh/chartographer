@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import static java.lang.Math.max;
 import static java.lang.Math.min;
 
 public class ImageHandler {
@@ -50,9 +51,14 @@ public class ImageHandler {
         if (imageId >= imageList.size() || imageList.get(imageId) == null)
             throw new IncorrectImageIdException();
 
+        int regionX = max(x, 0);
+        int regionY = max(y, 0);
+        int regionWidth = min(width, width + x);
+        int regionHeight = min(height, height + y);
+
         LargeImage image = imageList.get(imageId);
-        int subImageWidth = min(image.getImageWidth() - x, width);
-        int subImageHeight = min(image.getImageHeight() - y, height);
+        int subImageWidth = min(image.getImageWidth() - regionX, regionWidth);
+        int subImageHeight = min(image.getImageHeight() - regionY, regionHeight);
         int subImageX = 0;
         int subImageY = 0;
 
@@ -63,22 +69,22 @@ public class ImageHandler {
                 subImageHeight, BufferedImage.TYPE_INT_RGB);
         Graphics subImageGraphics = subImage.createGraphics();
 
-        int firstPartIndex = y / maxImagePartHeight;
-        int lastPartIndex = (y + subImageHeight - 1) / maxImagePartHeight;
+        int firstPartIndex = regionY / maxImagePartHeight;
+        int lastPartIndex = (regionY + subImageHeight - 1) / maxImagePartHeight;
 
         for (int i = firstPartIndex; i <= lastPartIndex; i++) {
             BufferedImage imagePart = ImageIO.read(new File(getImagePartPath(imageId, i)));
 
-            int sourceSubImageX = x;
+            int sourceSubImageX = regionX;
             int sourceSubImageY = 0;
-            if (y > maxImagePartHeight * i) {
-                sourceSubImageY = y - maxImagePartHeight * i;
+            if (regionY > maxImagePartHeight * i) {
+                sourceSubImageY = regionY - maxImagePartHeight * i;
             }
 
             int sourceSubImageWidth = subImageWidth;
             int sourceSubImageHeight = maxImagePartHeight;
-            if (y + subImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
-                sourceSubImageHeight = y + subImageHeight - maxImagePartHeight * i;
+            if (regionY + subImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
+                sourceSubImageHeight = regionY + subImageHeight - maxImagePartHeight * i;
             }
 
             BufferedImage sourceSubImage = imagePart.getSubimage(sourceSubImageX,
