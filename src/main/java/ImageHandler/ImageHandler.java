@@ -7,9 +7,7 @@ import org.apache.commons.io.FileUtils;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 
 import static java.lang.Math.max;
@@ -98,6 +96,33 @@ public class ImageHandler {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(subImage, imageExtension, byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
+    }
+
+    public void drawImage(int imageId, int x, int y, int width, int height, InputStream inputStream) throws IOException {
+        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
+            throw new IncorrectImageIdException();
+        }
+
+        LargeImage targetImage = imageList.get(imageId);
+        BufferedImage sourceImage = ImageIO.read(inputStream);
+        if (sourceImage.getWidth() != width || sourceImage.getHeight() != height) {
+            throw new IncorrectImageRegionException();
+        }
+
+        if (x + width < 0 || y + height < 0 || y >= targetImage.getImageHeight() || x >= targetImage.getImageWidth()) {
+            throw new IncorrectImageRegionException();
+        }
+
+        for (int i = 0; i < targetImage.getNumberOfParts(); i++) {
+            String imagePartPath = getImagePartPath(imageId, i);
+            BufferedImage targetImagePart = ImageIO.read(new File(imagePartPath));
+            Graphics targetImagePartGraphics = targetImagePart.createGraphics();
+            int sourceImageX = x;
+            int sourceImageY = y - maxImagePartHeight * i;
+
+            targetImagePartGraphics.drawImage(sourceImage, sourceImageX, sourceImageY, null);
+            ImageIO.write(targetImagePart, imageExtension, new File(imagePartPath));
+        }
     }
 
     public int createImage(int width, int height) throws IOException {
