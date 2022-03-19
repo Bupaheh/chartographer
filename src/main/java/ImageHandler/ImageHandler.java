@@ -84,7 +84,7 @@ public class ImageHandler {
             }
 
             int sourceSubImageWidth = subImageWidth;
-            int sourceSubImageHeight = maxImagePartHeight;
+            int sourceSubImageHeight = maxImagePartHeight - sourceSubImageY;
             if (regionY + subImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
                 sourceSubImageHeight = regionY + subImageHeight - maxImagePartHeight * i;
             }
