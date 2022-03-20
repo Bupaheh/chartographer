@@ -48,7 +48,7 @@ public class ImageHandler {
     }
 
     public byte[] getSubImage(int imageId, int x, int y, int width, int height) throws IOException {
-        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
@@ -103,7 +103,7 @@ public class ImageHandler {
     }
 
     public void drawImage(int imageId, int x, int y, int width, int height, InputStream inputStream) throws IOException {
-        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
@@ -151,7 +151,7 @@ public class ImageHandler {
     }
 
     public void deleteImage(int imageId) throws IOException {
-        if (imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
