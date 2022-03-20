@@ -7,6 +7,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
 
 
 public class Main {
@@ -33,6 +34,7 @@ public class Main {
             HttpServer server = HttpServer.create(new InetSocketAddress(hostname, port), 0);
             server.createContext(requestPath, new ChartasHttpHandler(workingDirectory,
                     maxImagePartWidth, maxImagePartHeight, imageExtension));
+            server.setExecutor(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
             server.start();
         } catch (IOException e) {
             System.out.println(e.getMessage());

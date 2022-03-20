@@ -9,6 +9,11 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.lang.Math.max;
 import static java.lang.Math.min;
@@ -19,7 +24,9 @@ public class ImageHandler {
     private final int maxImagePartHeight;
     private final String imageExtension;
     final private String workingDirectory;
-    final private ArrayList<LargeImage> imageList = new ArrayList<>();
+    final private AtomicInteger imageCount = new AtomicInteger();
+    final private List<LargeImage> imageList = Collections.synchronizedList(new ArrayList<>());
+    final private List<ReadWriteLock> imageLocks = Collections.synchronizedList(new ArrayList<>());
 
     private String getImageDirectoryPath(int imageId) {
         return workingDirectory + "/" + imageId;
@@ -48,7 +55,7 @@ public class ImageHandler {
     }
 
     public byte[] getSubImage(int imageId, int x, int y, int width, int height) throws IOException {
-        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageCount.get() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
@@ -74,6 +81,8 @@ public class ImageHandler {
         int firstPartIndex = regionY / maxImagePartHeight;
         int lastPartIndex = (regionY + subImageHeight - 1) / maxImagePartHeight;
 
+        imageLocks.get(imageId).readLock().lock();
+
         for (int i = firstPartIndex; i <= lastPartIndex; i++) {
             BufferedImage imagePart = ImageIO.read(new File(getImagePartPath(imageId, i)));
 
@@ -97,13 +106,15 @@ public class ImageHandler {
             subImageY += sourceSubImageHeight;
         }
 
+        imageLocks.get(imageId).readLock().unlock();
+
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         ImageIO.write(subImage, imageExtension, byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
     }
 
     public void drawImage(int imageId, int x, int y, int width, int height, InputStream inputStream) throws IOException {
-        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageCount.get() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
@@ -117,6 +128,8 @@ public class ImageHandler {
             throw new IncorrectImageRegionException();
         }
 
+        imageLocks.get(imageId).writeLock().lock();
+
         for (int i = 0; i < targetImage.getNumberOfParts(); i++) {
             String imagePartPath = getImagePartPath(imageId, i);
             BufferedImage targetImagePart = ImageIO.read(new File(imagePartPath));
@@ -127,6 +140,7 @@ public class ImageHandler {
             targetImagePartGraphics.drawImage(sourceImage, sourceImageX, sourceImageY, null);
             ImageIO.write(targetImagePart, imageExtension, new File(imagePartPath));
         }
+        imageLocks.get(imageId).writeLock().unlock();
     }
 
     public int createImage(int width, int height) throws IOException {
@@ -134,7 +148,11 @@ public class ImageHandler {
             throw new IncorrectImageRegionException();
         }
 
-        int imageId = imageList.size();
+        int imageId = imageCount.getAndIncrement();
+
+        imageLocks.add(imageId, new ReentrantReadWriteLock());
+        imageLocks.get(imageId).writeLock().lock();
+
         int numberOfParts = (height + maxImagePartHeight - 1) / maxImagePartHeight;
         new File(getImageDirectoryPath(imageId)).mkdirs();
 
@@ -147,16 +165,19 @@ public class ImageHandler {
         }
 
         imageList.add(imageId, new LargeImage(width, height, numberOfParts));
+        imageLocks.get(imageId).writeLock().unlock();
         return imageId;
     }
 
     public void deleteImage(int imageId) throws IOException {
-        if (imageId < 0 || imageId >= imageList.size() || imageList.get(imageId) == null) {
+        if (imageId < 0 || imageId >= imageCount.get() || imageList.get(imageId) == null) {
             throw new IncorrectImageIdException();
         }
 
+        imageLocks.get(imageId).writeLock().lock();
         FileUtils.deleteDirectory(new File(getImageDirectoryPath(imageId)));
         imageList.set(imageId, null);
+        imageLocks.get(imageId).writeLock().unlock();
     }
 
 }

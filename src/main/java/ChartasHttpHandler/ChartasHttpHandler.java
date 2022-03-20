@@ -152,7 +152,6 @@ public class ChartasHttpHandler implements HttpHandler {
 
             imageHandler.drawImage(imageId, params.get("x"),
                     params.get("y"), params.get("width"), params.get("height"), httpExchange.getRequestBody());
-
             httpExchange.sendResponseHeaders(HttpStatus.SC_OK, 0);
         } catch (NumberFormatException | IncorrectImageRegionException e) {
             sendBadRequest(httpExchange);
