@@ -14,7 +14,6 @@ public class Main {
 
     private static final int port = 8080;
     private static final String requestPath = "/chartas";
-    private static final String workingDirectory = "Images";
     private static final int maxImagePartWidth = 20000;
     private static final int maxImagePartHeight = 5000;
     private static final String imageExtension = "bmp";
@@ -22,14 +21,12 @@ public class Main {
 
     public static void main(String[] args) {
         try {
-            /* delete images from previous session */
-            FileUtils.deleteDirectory(new File(workingDirectory));
-
-            if (!new File(workingDirectory).mkdirs()) {
-                System.out.println("Unable to create a working directory.");
+            if (args.length <= 0) {
+                System.out.println("The working directory was not passed.");
                 return;
             }
 
+            String workingDirectory = args[0];
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext(requestPath, new ChartasHttpHandler(workingDirectory,
                     maxImagePartWidth, maxImagePartHeight, imageExtension));
