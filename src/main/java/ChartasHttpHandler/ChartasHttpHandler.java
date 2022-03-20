@@ -8,6 +8,7 @@ import com.sun.net.httpserver.HttpHandler;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -84,18 +85,14 @@ public class ChartasHttpHandler implements HttpHandler {
                     params.get("y"), params.get("width"), params.get("height"));
             OutputStream outputStream = httpExchange.getResponseBody();
 
-            httpExchange.sendResponseHeaders(200, subImage.length);
+            httpExchange.sendResponseHeaders(HttpStatus.SC_OK, subImage.length);
             outputStream.write(subImage);
             outputStream.close();
+        } catch (NumberFormatException | IncorrectImageRegionException e) {
+            sendBadRequest(httpExchange);
         } catch (IncorrectImageIdException e) {
             sendNotFound(httpExchange);
-        } catch (IncorrectImageRegionException e) {
-            sendBadRequest(httpExchange);
         }
-    }
-
-    private void handlePostRequest(HttpExchange httpExchange) {
-        // TODO
     }
 
     private void handleDeleteRequest(HttpExchange httpExchange) throws IOException {
@@ -108,4 +105,42 @@ public class ChartasHttpHandler implements HttpHandler {
             sendNotFound(httpExchange);
         }
     }
+
+    private void handlePostRequest(HttpExchange httpExchange) throws IOException {
+        switch (StringUtils.countMatches(httpExchange.getRequestURI().toString(), '/')) {
+            case 2:
+                handleCreateRequest(httpExchange);
+                break;
+            case 3:
+                handleDrawRequest(httpExchange);
+                break;
+            default:
+                sendBadRequest(httpExchange);
+        }
+    }
+
+    private void handleCreateRequest(HttpExchange httpExchange) throws IOException {
+        try {
+            Map<String, Integer> params = getParams(httpExchange);
+
+            if (!(params.containsKey("width") && params.containsKey("height"))) {
+                sendBadRequest(httpExchange);
+                return;
+            }
+
+            int imageId = imageHandler.createImage(params.get("width"), params.get("height"));
+            OutputStream outputStream = httpExchange.getResponseBody();
+
+            httpExchange.sendResponseHeaders(HttpStatus.SC_CREATED, Integer.BYTES);
+            outputStream.write(imageId);
+            outputStream.close();
+        } catch (NumberFormatException | IncorrectImageRegionException e) {
+            sendBadRequest(httpExchange);
+        }
+    }
+
+    private void handleDrawRequest(HttpExchange httpExchange) {
+        // TODO
+    }
+
 }
