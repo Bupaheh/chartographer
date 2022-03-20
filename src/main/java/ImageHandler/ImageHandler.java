@@ -37,7 +37,7 @@ public class ImageHandler {
     }
 
     public ImageHandler(String workingDirectory, int maxImagePartWidth,
-                        int maxImagePartHeight, String imageExtension) throws IOException {
+                        int maxImagePartHeight, String imageExtension) {
         File directory = new File(workingDirectory);
 
         if (!directory.isDirectory()) {
@@ -65,21 +65,27 @@ public class ImageHandler {
         int regionHeight = min(height, height + y);
 
         LargeImage image = imageList.get(imageId);
-        int subImageWidth = min(image.getImageWidth() - regionX, regionWidth);
-        int subImageHeight = min(image.getImageHeight() - regionY, regionHeight);
+        int sourceSubImageWidth = min(image.getImageWidth() - regionX, regionWidth);
+        int sourceSubImageHeight = min(image.getImageHeight() - regionY, regionHeight);
         int subImageX = 0;
         int subImageY = 0;
+        if (x < 0) {
+            subImageX = -x;
+        }
+        if (y < 0) {
+            subImageY = -y;
+        }
 
-        if (subImageWidth <= 0 || subImageHeight <= 0) {
+        if (sourceSubImageWidth <= 0 || sourceSubImageHeight <= 0) {
             throw new IncorrectImageRegionException();
         }
 
-        BufferedImage subImage = new BufferedImage(subImageWidth,
-                subImageHeight, BufferedImage.TYPE_INT_RGB);
+        BufferedImage subImage = new BufferedImage(width,
+                height, BufferedImage.TYPE_INT_RGB);
         Graphics subImageGraphics = subImage.createGraphics();
 
         int firstPartIndex = regionY / maxImagePartHeight;
-        int lastPartIndex = (regionY + subImageHeight - 1) / maxImagePartHeight;
+        int lastPartIndex = (regionY + sourceSubImageHeight - 1) / maxImagePartHeight;
 
         imageLocks.get(imageId).readLock().lock();
 
@@ -92,18 +98,18 @@ public class ImageHandler {
                 sourceSubImageY = regionY - maxImagePartHeight * i;
             }
 
-            int sourceSubImageWidth = subImageWidth;
-            int sourceSubImageHeight = maxImagePartHeight - sourceSubImageY;
-            if (regionY + subImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
-                sourceSubImageHeight = regionY + subImageHeight - maxImagePartHeight * i;
+            int partSubImageWidth = sourceSubImageWidth;
+            int partSubImageHeight = maxImagePartHeight - sourceSubImageY;
+            if (regionY + sourceSubImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
+                partSubImageHeight = regionY + sourceSubImageHeight - maxImagePartHeight * i;
             }
 
             BufferedImage sourceSubImage = imagePart.getSubimage(sourceSubImageX,
-                    sourceSubImageY, sourceSubImageWidth, sourceSubImageHeight);
+                    sourceSubImageY, partSubImageWidth, partSubImageHeight);
 
             subImageGraphics.drawImage(sourceSubImage, subImageX, subImageY, null);
 
-            subImageY += sourceSubImageHeight;
+            subImageY += partSubImageHeight;
         }
 
         imageLocks.get(imageId).readLock().unlock();
