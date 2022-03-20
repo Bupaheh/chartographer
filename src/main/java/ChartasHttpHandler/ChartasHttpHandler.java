@@ -1,8 +1,8 @@
 package ChartasHttpHandler;
 
 import ImageHandler.Exceptions.IncorrectImageIdException;
+import ImageHandler.Exceptions.IncorrectImageRegionException;
 import ImageHandler.ImageHandler;
-import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import org.apache.http.HttpStatus;
@@ -12,11 +12,10 @@ import org.apache.http.client.utils.URLEncodedUtils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ChartasHttpHandler implements HttpHandler {
 
@@ -27,7 +26,7 @@ public class ChartasHttpHandler implements HttpHandler {
         imageHandler = new ImageHandler(workingDirectory, maxImagePartWidth, maxImagePartHeight, imageExtension);
     }
 
-    private static void sendRadRequest(HttpExchange httpExchange) throws IOException {
+    private static void sendBadRequest(HttpExchange httpExchange) throws IOException {
         httpExchange.sendResponseHeaders(HttpStatus.SC_BAD_REQUEST, 0);
     }
 
@@ -40,6 +39,17 @@ public class ChartasHttpHandler implements HttpHandler {
                 .getRequestURI()
                 .toString()
                 .split("/")[2]);
+    }
+
+    private static Map<String, Integer> getParams(HttpExchange httpExchange) {
+        URI uri = httpExchange.getRequestURI();
+        List<NameValuePair> params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+
+        return params.stream().collect(
+                Collectors.toMap(NameValuePair::getName, (NameValuePair el) -> {
+                    String value = el.getValue();
+                    return Integer.parseInt(value);
+                }));
     }
 
     @Override
@@ -55,12 +65,33 @@ public class ChartasHttpHandler implements HttpHandler {
                 handleDeleteRequest(httpExchange);
                 break;
             default:
-                sendRadRequest(httpExchange);
+                sendBadRequest(httpExchange);
         }
     }
 
-    private void handleGetRequest(HttpExchange httpExchange){
-        // TODO
+    private void handleGetRequest(HttpExchange httpExchange) throws IOException {
+        try {
+            int imageId = getImageId(httpExchange);
+            Map<String, Integer> params = getParams(httpExchange);
+
+            if (!(params.containsKey("x") && params.containsKey("y") &&
+                    params.containsKey("width") && params.containsKey("height"))) {
+                sendBadRequest(httpExchange);
+                return;
+            }
+
+            byte[] subImage = imageHandler.getSubImage(imageId, params.get("x"),
+                    params.get("y"), params.get("width"), params.get("height"));
+            OutputStream outputStream = httpExchange.getResponseBody();
+
+            httpExchange.sendResponseHeaders(200, subImage.length);
+            outputStream.write(subImage);
+            outputStream.close();
+        } catch (IncorrectImageIdException e) {
+            sendNotFound(httpExchange);
+        } catch (IncorrectImageRegionException e) {
+            sendBadRequest(httpExchange);
+        }
     }
 
     private void handlePostRequest(HttpExchange httpExchange) {
@@ -72,7 +103,7 @@ public class ChartasHttpHandler implements HttpHandler {
             int imageId = getImageId(httpExchange);
             imageHandler.deleteImage(imageId);
         } catch (NumberFormatException e) {
-            sendRadRequest(httpExchange);
+            sendBadRequest(httpExchange);
         } catch (IncorrectImageIdException e) {
             sendNotFound(httpExchange);
         }
