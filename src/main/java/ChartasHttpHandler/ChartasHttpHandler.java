@@ -139,8 +139,26 @@ public class ChartasHttpHandler implements HttpHandler {
         }
     }
 
-    private void handleDrawRequest(HttpExchange httpExchange) {
-        // TODO
+    private void handleDrawRequest(HttpExchange httpExchange) throws IOException {
+        try {
+            int imageId = getImageId(httpExchange);
+            Map<String, Integer> params = getParams(httpExchange);
+
+            if (!(params.containsKey("x") && params.containsKey("y") &&
+                    params.containsKey("width") && params.containsKey("height"))) {
+                sendBadRequest(httpExchange);
+                return;
+            }
+
+            imageHandler.drawImage(imageId, params.get("x"),
+                    params.get("y"), params.get("width"), params.get("height"), httpExchange.getRequestBody());
+
+            httpExchange.sendResponseHeaders(HttpStatus.SC_OK, 0);
+        } catch (NumberFormatException | IncorrectImageRegionException e) {
+            sendBadRequest(httpExchange);
+        } catch (IncorrectImageIdException e) {
+            sendNotFound(httpExchange);
+        }
     }
 
 }
