@@ -92,20 +92,20 @@ public class ImageHandler {
         for (int i = firstPartIndex; i <= lastPartIndex; i++) {
             BufferedImage imagePart = ImageIO.read(new File(getImagePartPath(imageId, i)));
 
-            int sourceSubImageX = regionX;
-            int sourceSubImageY = 0;
+            int partSubImageX = regionX;
+            int partSubImageY = 0;
             if (regionY > maxImagePartHeight * i) {
-                sourceSubImageY = regionY - maxImagePartHeight * i;
+                partSubImageY = regionY - maxImagePartHeight * i;
             }
 
             int partSubImageWidth = sourceSubImageWidth;
-            int partSubImageHeight = maxImagePartHeight - sourceSubImageY;
+            int partSubImageHeight = maxImagePartHeight - partSubImageY;
             if (regionY + sourceSubImageHeight - 1 < maxImagePartHeight * (i + 1) - 1) {
                 partSubImageHeight = regionY + sourceSubImageHeight - maxImagePartHeight * i;
             }
 
-            BufferedImage sourceSubImage = imagePart.getSubimage(sourceSubImageX,
-                    sourceSubImageY, partSubImageWidth, partSubImageHeight);
+            BufferedImage sourceSubImage = imagePart.getSubimage(partSubImageX,
+                    partSubImageY, partSubImageWidth, partSubImageHeight);
 
             subImageGraphics.drawImage(sourceSubImage, subImageX, subImageY, null);
 

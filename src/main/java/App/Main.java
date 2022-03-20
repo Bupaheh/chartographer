@@ -35,7 +35,7 @@ public class Main {
                     maxImagePartWidth, maxImagePartHeight, imageExtension));
             server.setExecutor(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
             server.start();
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
