@@ -99,6 +99,7 @@ public class ChartasHttpHandler implements HttpHandler {
         try {
             int imageId = getImageId(httpExchange);
             imageHandler.deleteImage(imageId);
+            httpExchange.sendResponseHeaders(HttpStatus.SC_OK, 0);
         } catch (NumberFormatException e) {
             sendBadRequest(httpExchange);
         } catch (IncorrectImageIdException e) {
@@ -128,11 +129,12 @@ public class ChartasHttpHandler implements HttpHandler {
                 return;
             }
 
-            int imageId = imageHandler.createImage(params.get("width"), params.get("height"));
+            String imageId = Integer.toString(imageHandler.createImage(params.get("width"), params.get("height")));
+            byte[] imageIdBytes = imageId.getBytes(StandardCharsets.UTF_8);
             OutputStream outputStream = httpExchange.getResponseBody();
 
-            httpExchange.sendResponseHeaders(HttpStatus.SC_CREATED, Integer.BYTES);
-            outputStream.write(imageId);
+            httpExchange.sendResponseHeaders(HttpStatus.SC_CREATED, imageIdBytes.length);
+            outputStream.write(imageIdBytes);
             outputStream.close();
         } catch (NumberFormatException | IncorrectImageRegionException e) {
             sendBadRequest(httpExchange);
